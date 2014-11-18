@@ -1,0 +1,145 @@
+#!/usr/bin/env python
+import logging
+import os
+
+from argparse import ArgumentParser, RawDescriptionHelpFormatter
+
+import daemonocle
+import psutil
+
+try:
+    from yaml import safe_load as yaml_load
+except ImportError:
+    yaml_load = False
+
+MY_BASENAME = os.path.basename(__file__)
+
+DEFAULT_CONFFILE = '/etc/%s.yaml' % MY_BASENAME
+DEFAULT_PIDFILE = '/var/run/{0}/{0}.pid'.format(MY_BASENAME)
+
+
+ARGS_PARSER = ArgumentParser(formatter_class=RawDescriptionHelpFormatter)
+ARGS_PARSER.add_argument("--logfile", metavar="FILE", dest="logfile",
+                         help="Output logging to this file")
+ARGS_PARSER.add_argument("--loglevel", metavar="LEVEL", dest="loglevel", default='INFO',
+                         choices=('DEBUG', 'INFO', 'WARN', 'ERROR', 'CRITICAL', 'DISABLED'),
+                         help="Minimum level for log to output. Default: INFO")
+ARGS_PARSER.add_argument("--pidfile", metavar="FILE", dest="pidfile",
+                         default=DEFAULT_PIDFILE,
+                         help="Where to put a PID file")
+ARGS_PARSER.add_argument("action", choices=daemonocle.Daemon.list_actions(),
+                         help="Daemonization action")
+
+
+if yaml_load:
+    ARGS_PARSER.add_argument("--config", metavar="FILE", dest='config',
+                             help="Use a supplimentary config file (see "
+                             "notes below). Default: %s" % DEFAULT_CONFFILE)
+    ARGS_PARSER.epilog = """
+Config File Notes:
+  The format of the config file is a YAML file, containing key/value pairs for
+  any options that are able to be specified on the command line.
+"""
+
+else:
+    ARGS_PARSER.epilog = """
+Config File Notes:
+  You do not have pyyaml installed. This is required for the --config option to
+  work, and is highly recommended.
+"""
+
+
+def main():
+    args = ARGS_PARSER.parse_args()
+
+    # Setup args loading from config file
+    config_file = None
+    if yaml_load:
+        if args.config:
+            config_file = args.config
+        else:
+            config_file = DEFAULT_CONFFILE
+            if not os.path.exists(config_file):
+                config_file = None
+
+    if config_file:
+        with open(config_file, 'r') as fh:
+            config_data = yaml_load(fh)
+
+        for name, val in args.__dict__.iteritems():
+            if val is None and name in config_data:
+                setattr(args, name, config_data[name])
+
+    logging_kwargs = {
+        'level': logging.INFO,
+        'format': "%(asctime)s %(levelname)-8s %(message)s",
+        'datefmt': "%H:%M:%S",
+    }
+
+    if args.logfile:
+        logging_kwargs['filename'] = args.logfile
+
+    if args.loglevel == 'DISABLED':
+        logging.disable(logging.CRITICAL)
+    else:
+        logging_kwargs['level'] = getattr(logging, args.loglevel)
+
+        # Reset logging config
+        if logging.root.handlers:
+            for handler in logging.root.handlers:
+                logging.root.removeHandler(handler)
+
+        logging.basicConfig(**logging_kwargs)
+
+    if args:
+        # Daemonization action has been specified (start/stop/restart/status).
+        # Let daemonocle handle that for us so that we don't need to deal with
+        # signals and other intricacies of running a *nix daemon properly
+        daemon = daemonocle.Daemon(
+            worker=lambda: wrapped_event_loop(args),
+            pidfile=os.path.abspath(args.pidfile),
+        )
+        daemon.do_action(args.action)
+    else:
+        # No daemonization action, so run foreground every time
+        wrapped_event_loop(args)
+
+
+def wrapped_event_loop(args):
+    """
+    Wrap the event loop in an exception catch/log
+    """
+    try:
+        return event_loop(args)
+    except Exception:
+        logging.exception("Unhandled error in the event loop")
+        return False
+
+def event_loop(args):
+    """
+    Loop until we get some signal to stop
+    """
+    logging.info("Starting event loop")
+
+    while True:
+        pass
+
+def check_opt(name, value):
+    """
+    Check that an "option" flag is specified
+    """
+    if value is None:
+        failed_invokation("The %s flag is required", name)
+
+def failed_invokation(message, *args):
+    """
+    Prints usage information, an invokation failure message and exits with
+    status 1
+    """
+    ARGS_PARSER.print_help()
+    logging.critical(message, *args)
+    sys.exit(1)
+
+
+if __name__ == '__main__':
+    main()
