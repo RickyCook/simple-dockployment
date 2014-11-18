@@ -18,12 +18,12 @@ DEFAULT_PIDFILE = '/var/run/{0}/{0}.pid'.format(MY_BASENAME)
 LOG_CHOICES = ('DEBUG', 'INFO', 'WARN', 'ERROR', 'CRITICAL', 'DISABLED')
 
 ARGS_PARSER = ArgumentParser(formatter_class=RawDescriptionHelpFormatter)
-ARGS_PARSER.add_argument("--logfile", metavar="FILE", dest="logfile",
+ARGS_PARSER.add_argument("--logfile", metavar="FILE",
                          help="Output logging to this file")
-ARGS_PARSER.add_argument("--loglevel", metavar="LEVEL", dest="loglevel",
+ARGS_PARSER.add_argument("--loglevel", metavar="LEVEL",
                          default='INFO', choices=LOG_CHOICES,
                          help="Minimum level for log to output. Default: INFO")
-ARGS_PARSER.add_argument("--pidfile", metavar="FILE", dest="pidfile",
+ARGS_PARSER.add_argument("--pidfile", metavar="FILE",
                          default=DEFAULT_PIDFILE,
                          help="Where to put a PID file")
 ARGS_PARSER.add_argument("action", choices=daemonocle.Daemon.list_actions(),
