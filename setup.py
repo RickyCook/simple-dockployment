@@ -9,7 +9,7 @@ install_requires = [str(requirement.req)
 
 setup(name="Simple Dockployment",
       version="0.0.1",
-      description="Simple Docker daemon to watch Docker for new tagged containers, and deploy them",
+      description="Simple daemon to watch Docker for new tagged containers, and deploy them",
       author="Ricky Cook",
       author_email="mail@thatpanda.com",
       py_modules=['simple-dockployment'],
