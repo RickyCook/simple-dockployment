@@ -15,13 +15,13 @@ MY_BASENAME = os.path.basename(__file__)
 
 DEFAULT_CONFFILE = '/etc/%s.yaml' % MY_BASENAME
 DEFAULT_PIDFILE = '/var/run/{0}/{0}.pid'.format(MY_BASENAME)
-
+LOG_CHOICES = ('DEBUG', 'INFO', 'WARN', 'ERROR', 'CRITICAL', 'DISABLED')
 
 ARGS_PARSER = ArgumentParser(formatter_class=RawDescriptionHelpFormatter)
 ARGS_PARSER.add_argument("--logfile", metavar="FILE", dest="logfile",
                          help="Output logging to this file")
-ARGS_PARSER.add_argument("--loglevel", metavar="LEVEL", dest="loglevel", default='INFO',
-                         choices=('DEBUG', 'INFO', 'WARN', 'ERROR', 'CRITICAL', 'DISABLED'),
+ARGS_PARSER.add_argument("--loglevel", metavar="LEVEL", dest="loglevel",
+                         default='INFO', choices=LOG_CHOICES,
                          help="Minimum level for log to output. Default: INFO")
 ARGS_PARSER.add_argument("--pidfile", metavar="FILE", dest="pidfile",
                          default=DEFAULT_PIDFILE,
